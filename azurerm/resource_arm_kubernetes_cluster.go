@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/services/containerservice/mgmt/2018-03-31/containerservice"
+	"github.com/Azure/azure-sdk-for-go/services/containerservice/mgmt/2019-02-01/containerservice"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -319,8 +319,8 @@ func resourceArmKubernetesCluster() *schema.Resource {
 							Computed: true,
 							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
-								string(containerservice.Calico),
-								string(containerservice.Azure),
+								string(containerservice.NetworkPolicyCalico),
+								string(containerservice.NetworkPolicyAzure),
 							}, false),
 						},
 
@@ -885,12 +885,12 @@ func expandKubernetesClusterAgentPoolProfiles(d *schema.ResourceData) []containe
 	osType := config["os_type"].(string)
 
 	profile := containerservice.ManagedClusterAgentPoolProfile{
-		Name:           utils.String(name),
-		Count:          utils.Int32(count),
-		VMSize:         containerservice.VMSizeTypes(vmSize),
-		OsDiskSizeGB:   utils.Int32(osDiskSizeGB),
-		StorageProfile: containerservice.ManagedDisks,
-		OsType:         containerservice.OSType(osType),
+		Name:         utils.String(name),
+		Count:        utils.Int32(count),
+		VMSize:       containerservice.VMSizeTypes(vmSize),
+		OsDiskSizeGB: utils.Int32(osDiskSizeGB),
+
+		OsType: containerservice.OSType(osType),
 	}
 
 	if maxPods := int32(config["max_pods"].(int)); maxPods > 0 {
@@ -1015,7 +1015,7 @@ func flattenKubernetesClusterLinuxProfile(profile *containerservice.LinuxProfile
 	return []interface{}{values}
 }
 
-func expandKubernetesClusterNetworkProfile(d *schema.ResourceData) *containerservice.NetworkProfile {
+func expandKubernetesClusterNetworkProfile(d *schema.ResourceData) *containerservice.NetworkProfileType {
 	configs := d.Get("network_profile").([]interface{})
 	if len(configs) == 0 {
 		return nil
@@ -1027,7 +1027,7 @@ func expandKubernetesClusterNetworkProfile(d *schema.ResourceData) *containerser
 
 	networkPolicy := config["network_policy"].(string)
 
-	networkProfile := containerservice.NetworkProfile{
+	networkProfile := containerservice.NetworkProfileType{
 		NetworkPlugin: containerservice.NetworkPlugin(networkPlugin),
 		NetworkPolicy: containerservice.NetworkPolicy(networkPolicy),
 	}
@@ -1055,7 +1055,7 @@ func expandKubernetesClusterNetworkProfile(d *schema.ResourceData) *containerser
 	return &networkProfile
 }
 
-func flattenKubernetesClusterNetworkProfile(profile *containerservice.NetworkProfile) []interface{} {
+func flattenKubernetesClusterNetworkProfile(profile *containerservice.NetworkProfileType) []interface{} {
 	if profile == nil {
 		return []interface{}{}
 	}
