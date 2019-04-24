@@ -13,7 +13,7 @@ variables:
   GOBIN:  '$(GOPATH)/bin' # Go binaries path
   GOROOT: '/usr/local/go1.11' # Go installation path
   GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
-  modulePath: '$(GOPATH)/src/github.com/terraform-providers/terraform-provider-azurerm' # Path to the module's code
+  modulePath: '$(GOPATH)/src/github.com/terraform-providers/' # Path to the module's code
 
 steps:
 - script: |
@@ -36,5 +36,10 @@ steps:
 - script: |
     go version
     make build
+    cp $(GOBIN)/terraform-provider-azurerm $(Build.ArtifactStagingDirectory)/
   workingDirectory: '$(modulePath)'
   displayName: 'Run build'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    ArtifactName: 'terraform-provider-azurerm'
