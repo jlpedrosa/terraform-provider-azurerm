@@ -109,6 +109,34 @@ func resourceArmKubernetesCluster() *schema.Resource {
 							ValidateFunc: validation.IntBetween(1, 100),
 						},
 
+						"max_count": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+
+						"min_count": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+
+						"type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"enable_auto_scaling": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+
+						"availability_zones": {
+							Type:     schema.TypeList,
+							Computed: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+
 						// TODO: remove this field in the next major version
 						"dns_prefix": {
 							Type:       schema.TypeString,
@@ -902,6 +930,25 @@ func expandKubernetesClusterAgentPoolProfiles(d *schema.ResourceData) []containe
 		profile.VnetSubnetID = utils.String(vnetSubnetID)
 	}
 
+	if maxCount := int32(config["max_count"].(int)); maxCount > 0 {
+		profile.MaxCount = utils.Int32(maxCount)
+	}
+	if minCount := int32(config["min_count"].(int)); minCount > 0 {
+		profile.MinCount = utils.Int32(minCount)
+	}
+	if vmSetType := config["type"].(string); vmSetType != "" {
+		profile.Type = containerservice.AgentPoolType(vmSetType)
+	}
+	if enableAutoScalingItf := config["enable_auto_scaling"]; enableAutoScalingItf != nil {
+		enableAutoScaling := enableAutoScalingItf.(bool)
+		profile.EnableAutoScaling = utils.Bool(enableAutoScaling)
+	}
+
+	if availavilityZonesItf := config["availability_zones"]; availavilityZonesItf != nil {
+		//availavilityZones := availavilityZonesItf.([]string)
+		//profile.AvailabilityZones = utils.
+	}
+
 	return []containerservice.ManagedClusterAgentPoolProfile{profile}
 }
 
@@ -917,6 +964,26 @@ func flattenKubernetesClusterAgentPoolProfiles(profiles *[]containerservice.Mana
 
 		if profile.Count != nil {
 			agentPoolProfile["count"] = int(*profile.Count)
+		}
+
+		if profile.MinCount != nil {
+			agentPoolProfile["min_count"] = int(*profile.MinCount)
+		}
+
+		if profile.MaxCount != nil {
+			agentPoolProfile["max_count"] = int(*profile.MaxCount)
+		}
+
+		if profile.Type != "" {
+			agentPoolProfile["type"] = string(profile.Type)
+		}
+
+		if profile.EnableAutoScaling != nil {
+			agentPoolProfile["enable_auto_scaling"] = bool(*profile.EnableAutoScaling)
+		}
+
+		if profile.AvailabilityZones != nil {
+			agentPoolProfile["availability_zones"] = utils.FlattenStringArray(profile.AvailabilityZones)
 		}
 
 		if fqdn != nil {
