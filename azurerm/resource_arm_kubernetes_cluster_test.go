@@ -548,6 +548,57 @@ func TestAccAzureRMKubernetesCluster_advancedNetworkingAzureNPMPolicyComplete(t 
 	})
 }
 
+func TestAccAzureRMKubernetesCluster_autoScalingWithoutAvailabilityZones(t *testing.T) {
+	resourceName := "azurerm_kubernetes_cluster.test"
+	ri := tf.AccRandTimeInt()
+	clientId := os.Getenv("ARM_CLIENT_ID")
+	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
+
+	config := testAccAzureRMKubernetesCluster_advancedNetworkingWithPolicyComplete(ri, clientId, clientSecret, testLocation(), "azure", "azure")
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMKubernetesClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMKubernetesClusterExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "network_profile.0.network_plugin", "azure"),
+					resource.TestCheckResourceAttr(resourceName, "network_profile.0.network_policy", "azure"),
+				),
+			},
+		},
+	})
+
+}
+
+func TestAccAzureRMKubernetesCluster_autoScalingWithAvailabilityZones(t *testing.T) {
+	resourceName := "azurerm_kubernetes_cluster.test"
+	ri := tf.AccRandTimeInt()
+	clientId := os.Getenv("ARM_CLIENT_ID")
+	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
+
+	config := testAccAzureRMKubernetesCluster_advancedNetworkingWithPolicyComplete(ri, clientId, clientSecret, testLocation(), "azure", "azure")
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMKubernetesClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMKubernetesClusterExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "network_profile.0.network_plugin", "azure"),
+					resource.TestCheckResourceAttr(resourceName, "network_profile.0.network_policy", "azure"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMKubernetesClusterExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
