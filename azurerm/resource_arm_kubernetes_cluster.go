@@ -111,27 +111,27 @@ func resourceArmKubernetesCluster() *schema.Resource {
 
 						"max_count": {
 							Type:     schema.TypeInt,
-							Computed: true,
+							Optional: true,
 						},
 
 						"min_count": {
 							Type:     schema.TypeInt,
-							Computed: true,
+							Optional: true,
 						},
 
 						"type": {
 							Type:     schema.TypeString,
-							Computed: true,
+							Optional: true,
 						},
 
 						"enable_auto_scaling": {
 							Type:     schema.TypeBool,
-							Computed: true,
+							Optional: true,
 						},
 
 						"availability_zones": {
 							Type:     schema.TypeList,
-							Computed: true,
+							Optional: true,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -945,8 +945,7 @@ func expandKubernetesClusterAgentPoolProfiles(d *schema.ResourceData) []containe
 	}
 
 	if availavilityZonesItf := config["availability_zones"]; availavilityZonesItf != nil {
-		//availavilityZones := availavilityZonesItf.([]string)
-		//profile.AvailabilityZones = utils.
+		profile.AvailabilityZones = utils.ExpandStringArray(availavilityZonesItf.([]interface{}))
 	}
 
 	return []containerservice.ManagedClusterAgentPoolProfile{profile}
