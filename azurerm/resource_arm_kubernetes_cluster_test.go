@@ -554,7 +554,7 @@ func TestAccAzureRMKubernetesCluster_autoScalingWithoutAvailabilityZones(t *test
 	clientId := os.Getenv("ARM_CLIENT_ID")
 	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
 
-	config := testAccAzureRMKubernetesCluster_advancedNetworkingWithPolicyComplete(ri, clientId, clientSecret, testLocation(), "azure", "azure")
+	config := testAccAzureRMKubernetesCluster_autoscaleNoAvailabilityZones(ri, clientId, clientSecret, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -565,8 +565,11 @@ func TestAccAzureRMKubernetesCluster_autoScalingWithoutAvailabilityZones(t *test
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMKubernetesClusterExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "network_profile.0.network_plugin", "azure"),
-					resource.TestCheckResourceAttr(resourceName, "network_profile.0.network_policy", "azure"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.min_count", "1"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.max_count", "2"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.type", "VirtualMachineScaleSets"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.enable_auto_scaling", "true"),
+					resource.TestCheckNoResourceAttr(resourceName, "agent_pool_profile.0.availability_zones"),
 				),
 			},
 		},
@@ -580,7 +583,7 @@ func TestAccAzureRMKubernetesCluster_autoScalingWithAvailabilityZones(t *testing
 	clientId := os.Getenv("ARM_CLIENT_ID")
 	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
 
-	config := testAccAzureRMKubernetesCluster_advancedNetworkingWithPolicyComplete(ri, clientId, clientSecret, testLocation(), "azure", "azure")
+	config := testAccAzureRMKubernetesCluster_autoscaleWithAvailabilityZones(ri, clientId, clientSecret, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -591,8 +594,13 @@ func TestAccAzureRMKubernetesCluster_autoScalingWithAvailabilityZones(t *testing
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMKubernetesClusterExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "network_profile.0.network_plugin", "azure"),
-					resource.TestCheckResourceAttr(resourceName, "network_profile.0.network_policy", "azure"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.min_count", "1"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.max_count", "2"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.type", "VirtualMachineScaleSets"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.enable_auto_scaling", "true"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.availability_zones.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.availability_zones.0", "1"),
+					resource.TestCheckResourceAttr(resourceName, "agent_pool_profile.0.availability_zones.1", "2"),
 				),
 			},
 		},
@@ -1408,4 +1416,65 @@ resource "azurerm_kubernetes_cluster" "test" {
   }
 }
 `, rInt, location, rInt, rInt, rInt, rInt, rInt, rInt, rInt, clientId, clientSecret, networkPlugin, networkPolicy)
+}
+
+func testAccAzureRMKubernetesCluster_autoscaleNoAvailabilityZones(rInt int, clientId string, clientSecret string, location string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-%d"
+  location = "%s"
+}
+
+resource "azurerm_kubernetes_cluster" "test" {
+  name                = "acctestaks%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  dns_prefix          = "acctestaks%d"
+
+  agent_pool_profile {
+    name    = "default"    
+		vm_size = "Standard_DS2_v2"
+		max_count = "2"
+    min_count = "1"
+		enable_auto_scaling = "true"
+		type = "VirtualMachineScaleSets"		
+  }
+
+  service_principal {
+    client_id     = "%s"
+    client_secret = "%s"
+  }
+}
+`, rInt, location, rInt, rInt, clientId, clientSecret)
+}
+
+func testAccAzureRMKubernetesCluster_autoscaleWithAvailabilityZones(rInt int, clientId string, clientSecret string, location string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+  name     = "acctestRG-%d"
+  location = "%s"
+}
+
+resource "azurerm_kubernetes_cluster" "test" {
+  name                = "acctestaks%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  dns_prefix          = "acctestaks%d"
+
+  agent_pool_profile {
+    name    = "default"    
+		vm_size = "Standard_DS2_v2"
+		max_count = "2"
+    min_count = "1"
+		enable_auto_scaling = "true"
+		type = "VirtualMachineScaleSets"
+		availability_zones = ["1", "2"]
+  }
+
+  service_principal {
+    client_id     = "%s"
+    client_secret = "%s"
+  }
+}
+`, rInt, location, rInt, rInt, clientId, clientSecret)
 }
